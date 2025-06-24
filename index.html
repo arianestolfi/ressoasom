@@ -16,13 +16,19 @@
       width: 300px;
     }
     .area {
-        width: 100px;
-        height: 100px;
+        width: 32%;
+        height: 20%;
         border: 1px solid red;
         float: left;
     }
     #btns {
-        width: 306px;
+        width: 100%;
+        height: 100%;
+        position: absolute;
+    }
+
+    .tocando {
+      background-color: red;
     }
   </style>
 </head>
@@ -83,93 +89,46 @@
     compressor.connect(audioContext.destination);
 
     // Função para tocar som aleatório
-    async function playRandomSound(fold) {
-      
-      const n = Math.floor(Math.random() * 10) + 1;
-      const filePath = 'sons/'+ fold +'/' + fold + '_' + n + '.wav';
+    async function playRandomSound(fold, el) {
+  const n = Math.floor(Math.random() * 10) + 1;
+  const filePath = 'sons/' + fold + '/' + fold + '_' + n + '.wav';
 
-      try {
-        const response = await fetch(filePath);
-        const arrayBuffer = await response.arrayBuffer();
-        const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+  try {
+    const response = await fetch(filePath);
+    const arrayBuffer = await response.arrayBuffer();
+    const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
 
-        const source = audioContext.createBufferSource();
-        source.buffer = audioBuffer;
+    const source = audioContext.createBufferSource();
+    source.buffer = audioBuffer;
 
-        // Dry (sem efeito)
-        const dryGain = audioContext.createGain();
-        dryGain.gain.value = 1;
+    // Dry (sem efeito)
+    const dryGain = audioContext.createGain();
+    dryGain.gain.value = 1;
 
-        source.connect(dryGain).connect(compressor); // direto para o compressor
-        source.connect(convolver); // envia para o reverb
+    source.connect(dryGain).connect(compressor); // direto para o compressor
+    source.connect(convolver); // envia para o reverb
 
-        source.start(0);
-        console.log(`Tocando: ${filePath}`);
-      } catch (error) {
-        console.error('Erro ao carregar o áudio:', error);
-      }
-    }
+    // Adiciona classe enquanto toca
+    el.classList.add('tocando');
+    source.onended = () => {
+      el.classList.remove('tocando');
+    };
 
-    document.getElementById('toca_n0').addEventListener('click', () => {
-      audioContext.resume().then(() => {
-        playRandomSound('n0');
-      });
+    source.start(0);
+    console.log(`Tocando: ${filePath}`);
+  } catch (error) {
+    console.error('Erro ao carregar o áudio:', error);
+  }
+}
+
+    document.querySelectorAll('.area').forEach(area => {
+  area.addEventListener('click', () => {
+    const id = area.id.replace('toca_', '');
+    audioContext.resume().then(() => {
+      playRandomSound(id, area);
     });
-    document.getElementById('toca_n1').addEventListener('click', () => {
-      audioContext.resume().then(() => {
-        playRandomSound('n1');
-      });
-    });
-    document.getElementById('toca_n2').addEventListener('click', () => {
-      audioContext.resume().then(() => {
-        playRandomSound('n2');
-      });
-    });
-    document.getElementById('toca_x0').addEventListener('click', () => {
-      audioContext.resume().then(() => {
-        playRandomSound('x0');
-      });
-    });
-    document.getElementById('toca_x1').addEventListener('click', () => {
-      audioContext.resume().then(() => {
-        playRandomSound('x1');
-      });
-    });
-    document.getElementById('toca_x2').addEventListener('click', () => {
-      audioContext.resume().then(() => {
-        playRandomSound('x2');
-      });
-    });
-    document.getElementById('toca_y0').addEventListener('click', () => {
-      audioContext.resume().then(() => {
-        playRandomSound('x0');
-      });
-    });
-    document.getElementById('toca_y1').addEventListener('click', () => {
-      audioContext.resume().then(() => {
-        playRandomSound('x1');
-      });
-    });
-    document.getElementById('toca_y2').addEventListener('click', () => {
-      audioContext.resume().then(() => {
-        playRandomSound('x2');
-      });
-    });
-    document.getElementById('toca_w0').addEventListener('click', () => {
-      audioContext.resume().then(() => {
-        playRandomSound('x0');
-      });
-    });
-    document.getElementById('toca_w1').addEventListener('click', () => {
-      audioContext.resume().then(() => {
-        playRandomSound('x1');
-      });
-    });
-    document.getElementById('toca_w2').addEventListener('click', () => {
-      audioContext.resume().then(() => {
-        playRandomSound('x2');
-      });
-    });
+  });
+});
   </script>
 </body>
 </html>
