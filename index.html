@@ -16,15 +16,15 @@
       width: 300px;
     }
     .area {
-      width: 32%;
-      height: 20%;
-      border: 1px solid red;
-      float: left;
+        width: 32%;
+        height: 20%;
+        border: 1px solid red;
+        float: left;
     }
     #btns {
-      width: 100%;
-      height: 100%;
-      position: absolute;
+        width: 100%;
+        height: 100%;
+        position: absolute;
     }
 
     .tocando {
@@ -33,112 +33,107 @@
   </style>
 </head>
 <body>
+ <audio controls>
+  <source src="sons/n0/n0_1.wav" type="audio/wav">
+</audio>
 
-  <label for="reverbControl">Reverb: </label>
+
+<label for="reverbControl">Reverb: </label>
   <input type="range" id="reverbControl" min="0" max="1" step="0.01" value="0.3">
-  <br><br>
-
+   <br><br>
   <div id="btns">
-    <div class="area" id="toca_n0">n0</div>
-    <div class="area" id="toca_n1">n1</div>
-    <div class="area" id="toca_n2">n2</div>
-    <div class="area" id="toca_x0">x0</div>
-    <div class="area" id="toca_x1">x1</div>
-    <div class="area" id="toca_x2">x2</div>
-    <div class="area" id="toca_y0">y0</div>
-    <div class="area" id="toca_y1">y1</div>
-    <div class="area" id="toca_y2">y2</div>
-    <div class="area" id="toca_w0">w0</div>
-    <div class="area" id="toca_w1">w1</div>
-    <div class="area" id="toca_w2">w2</div>
+  <div class="area" id="toca_n0">n0</div>
+  <div class="area" id="toca_n1">n1</div>
+  <div class="area" id="toca_n2">n2</div>
+  <div class="area" id="toca_x0">x0</div>
+  <div class="area" id="toca_x1">x1</div>
+  <div class="area" id="toca_x2">x2</div>
+  <div class="area" id="toca_y0">y0</div>
+  <div class="area" id="toca_y1">y1</div>
+  <div class="area" id="toca_y2">y2</div>
+  <div class="area" id="toca_w0">w0</div>
+  <div class="area" id="toca_w1">w1</div>
+  <div class="area" id="toca_w2">w2</div>
   </div>
-
+ 
+   
   <script>
-    let audioContext;
-    let compressor, convolver, reverbGain;
+    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+    // Compressor
+    const compressor = audioContext.createDynamicsCompressor();
+    compressor.threshold.setValueAtTime(-24, audioContext.currentTime);
+    compressor.knee.setValueAtTime(30, audioContext.currentTime);
+    compressor.ratio.setValueAtTime(12, audioContext.currentTime);
+    compressor.attack.setValueAtTime(0.003, audioContext.currentTime);
+    compressor.release.setValueAtTime(0.25, audioContext.currentTime);
+
+    // Reverb (convolver node)
+    const convolver = audioContext.createConvolver();
+    const reverbGain = audioContext.createGain();
+
+    // Reverb control
     const reverbSlider = document.getElementById('reverbControl');
-
-    function ensureAudioContext() {
-      if (!audioContext) {
-        audioContext = new (window.AudioContext || window.webkitAudioContext)();
-
-        // Compressor
-        compressor = audioContext.createDynamicsCompressor();
-        compressor.threshold.setValueAtTime(-24, audioContext.currentTime);
-        compressor.knee.setValueAtTime(30, audioContext.currentTime);
-        compressor.ratio.setValueAtTime(12, audioContext.currentTime);
-        compressor.attack.setValueAtTime(0.003, audioContext.currentTime);
-        compressor.release.setValueAtTime(0.25, audioContext.currentTime);
-
-        // Reverb
-        convolver = audioContext.createConvolver();
-        reverbGain = audioContext.createGain();
-        reverbGain.gain.value = parseFloat(reverbSlider.value);
-
-        convolver.connect(reverbGain).connect(compressor);
-        compressor.connect(audioContext.destination);
-
-        // Carrega o impulso para o reverb
-        fetch('impulse-response.wav')
-          .then(response => response.arrayBuffer())
-          .then(data => audioContext.decodeAudioData(data))
-          .then(buffer => {
-            convolver.buffer = buffer;
-            console.log('Impulse response carregado');
-          });
-      }
-    }
-
     reverbSlider.addEventListener('input', () => {
-      if (reverbGain) {
-        reverbGain.gain.value = parseFloat(reverbSlider.value);
-      }
+      reverbGain.gain.value = parseFloat(reverbSlider.value);
     });
 
+    reverbGain.gain.value = parseFloat(reverbSlider.value);
+
+    // Load impulse response for reverb
+    fetch('impulse-response.wav') // Substitua por seu arquivo de IR se quiser um realista
+      .then(response => response.arrayBuffer())
+      .then(data => audioContext.decodeAudioData(data))
+      .then(buffer => {
+        convolver.buffer = buffer;
+        console.log('Impulse response carregado');
+      });
+
+    // Conectando nodes
+    convolver.connect(reverbGain).connect(compressor);
+    compressor.connect(audioContext.destination);
+
+    // Função para tocar som aleatório
     async function playRandomSound(fold, el) {
-      const n = Math.floor(Math.random() * 10) + 1;
-      const filePath = 'sons/' + fold + '/' + fold + '_' + n + '.wav';
+  const n = Math.floor(Math.random() * 10) + 1;
+  const filePath = 'sons/' + fold + '/' + fold + '_' + n + '.wav';
 
-      try {
-        const response = await fetch(filePath);
-        const arrayBuffer = await response.arrayBuffer();
-        const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+  try {
+    const response = await fetch(filePath);
+    const arrayBuffer = await response.arrayBuffer();
+    const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
 
-        const source = audioContext.createBufferSource();
-        source.buffer = audioBuffer;
+    const source = audioContext.createBufferSource();
+    source.buffer = audioBuffer;
 
-        // Dry (sem efeito)
-        const dryGain = audioContext.createGain();
-        dryGain.gain.value = 1;
+    // Dry (sem efeito)
+    const dryGain = audioContext.createGain();
+    dryGain.gain.value = 1;
 
-        source.connect(dryGain).connect(compressor); // direto
-        source.connect(convolver); // reverb
+    source.connect(dryGain).connect(compressor); // direto para o compressor
+    source.connect(convolver); // envia para o reverb
 
-        el.classList.add('tocando');
-        source.onended = () => {
-          el.classList.remove('tocando');
-        };
+    // Adiciona classe enquanto toca
+    el.classList.add('tocando');
+    source.onended = () => {
+      el.classList.remove('tocando');
+    };
 
-        source.start(0);
-        console.log(`Tocando: ${filePath}`);
-      } catch (error) {
-        console.error('Erro ao carregar o áudio:', error);
-      }
-    }
+    source.start(0);
+    console.log(`Tocando: ${filePath}`);
+  } catch (error) {
+    console.error('Erro ao carregar o áudio:', error);
+  }
+}
 
     document.querySelectorAll('.area').forEach(area => {
-      const id = area.id.replace('toca_', '');
-      
-      ['click', 'touchstart'].forEach(eventType => {
-        area.addEventListener(eventType, () => {
-          ensureAudioContext();
-          audioContext.resume().then(() => {
-            playRandomSound(id, area);
-          });
-        }, { passive: true });
-      });
+  area.addEventListener('click', () => {
+    const id = area.id.replace('toca_', '');
+    audioContext.resume().then(() => {
+      playRandomSound(id, area);
     });
+  });
+});
   </script>
-
 </body>
 </html>
